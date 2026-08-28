@@ -17,16 +17,90 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	setupNonInteractive bool
+	setupCompositorFlag string
+	setupTerminalFlag   string
+)
+
 var setupCmd = &cobra.Command{
-	Use:               "setup",
-	Short:             "Deploy nexus-shell configurations",
-	Long:              "Deploy compositor and terminal configurations with interactive prompts",
+	Use:   "setup",
+	Short: "Deploy nexus-shell configurations",
+	Long: "Deploy compositor and terminal configurations.\n\n" +
+		"Runs interactively by default. Pass --yes with --compositor to deploy\n" +
+		"without prompts (used by the installer), e.g.:\n" +
+		"  nexus setup --yes --compositor=hyprland --terminal=kitty --systemd=false",
 	PersistentPreRunE: preRunPrivileged,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := runSetup(); err != nil {
+		opts := setupOptions{
+			nonInteractive: setupNonInteractive,
+			compositor:     setupCompositorFlag,
+			terminal:       setupTerminalFlag,
+			useSystemd:     true,
+			systemdSet:     cmd.Flags().Changed("systemd"),
+		}
+		if v, err := cmd.Flags().GetBool("systemd"); err == nil {
+			opts.useSystemd = v
+		}
+		if err := runSetup(opts); err != nil {
 			log.Fatalf("Error during setup: %v", err)
 		}
 	},
+}
+
+func init() {
+	f := setupCmd.Flags()
+	f.BoolVar(&setupNonInteractive, "yes", false, "Non-interactive: deploy without prompts (requires --compositor)")
+	f.StringVar(&setupCompositorFlag, "compositor", "", "Compositor for --yes mode: hyprland, niri, or mango")
+	f.StringVar(&setupTerminalFlag, "terminal", "", "Terminal for --yes mode: ghostty (default), kitty, or alacritty")
+	f.Bool("systemd", true, "Use systemd session management (--yes mode; --systemd=false for a standalone session)")
+}
+
+type setupOptions struct {
+	nonInteractive bool
+	compositor     string
+	terminal       string
+	useSystemd     bool
+	systemdSet     bool
+}
+
+func parseWMName(s string) (deps.WindowManager, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "hyprland", "hypr":
+		return deps.WindowManagerHyprland, nil
+	case "niri":
+		return deps.WindowManagerNiri, nil
+	case "mango", "mangowc":
+		return deps.WindowManagerMango, nil
+	case "":
+		return 0, fmt.Errorf("--yes requires --compositor=hyprland, niri, or mango")
+	default:
+		return 0, fmt.Errorf("unknown compositor %q (expected hyprland, niri, or mango)", s)
+	}
+}
+
+func terminalName(t deps.Terminal) string {
+	switch t {
+	case deps.TerminalKitty:
+		return "kitty"
+	case deps.TerminalAlacritty:
+		return "alacritty"
+	default:
+		return "ghostty"
+	}
+}
+
+func parseTerminalName(s string) (deps.Terminal, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "ghostty":
+		return deps.TerminalGhostty, nil
+	case "kitty":
+		return deps.TerminalKitty, nil
+	case "alacritty":
+		return deps.TerminalAlacritty, nil
+	default:
+		return 0, fmt.Errorf("unknown terminal %q (expected ghostty, kitty, or alacritty)", s)
+	}
 }
 
 var setupBindsCmd = &cobra.Command{
@@ -305,44 +379,76 @@ func runSetupDmsConfig(name string) error {
 	return nil
 }
 
-func runSetup() error {
+func runSetup(opts setupOptions) error {
 	fmt.Println("=== DMS Configuration Setup ===")
 
 	ensureInputGroup()
 
-	wm, wmSelected := promptCompositor()
-	terminal, terminalSelected := promptTerminal()
+	var wm deps.WindowManager
+	var terminal deps.Terminal
+	var wmSelected, terminalSelected bool
 	useSystemd := true
-	if wmSelected {
-		if wm == deps.WindowManagerMango {
-			useSystemd = false
-		} else if isVoidSetup() {
-			useSystemd = false
-			fmt.Println("\nVoid Linux detected; deploying non-systemd session config.")
-		} else {
-			useSystemd = promptSystemd()
+
+	if opts.nonInteractive {
+		var err error
+		if wm, err = parseWMName(opts.compositor); err != nil {
+			return err
 		}
-	}
+		wmSelected = true
 
-	if !wmSelected && !terminalSelected {
-		fmt.Println("No configurations selected. Exiting.")
-		return nil
-	}
+		terminal = deps.TerminalGhostty
+		if opts.terminal != "" {
+			if terminal, err = parseTerminalName(opts.terminal); err != nil {
+				return err
+			}
+		}
+		terminalSelected = true
 
-	if wmSelected || terminalSelected {
-		willBackup := checkExistingConfigs(wm, wmSelected, terminal, terminalSelected)
-		if willBackup {
-			fmt.Println("\n⚠ Existing configurations will be backed up with timestamps.")
+		switch {
+		case opts.systemdSet:
+			useSystemd = opts.useSystemd
+		case wm == deps.WindowManagerMango || isVoidSetup():
+			useSystemd = false
+		default:
+			useSystemd = true
 		}
 
-		fmt.Print("\nProceed with deployment? (y/N): ")
-		var response string
-		fmt.Scanln(&response)
-		response = strings.ToLower(strings.TrimSpace(response))
+		fmt.Printf("Non-interactive: compositor=%s terminal=%s systemd=%v\n",
+			opts.compositor, terminalName(terminal), useSystemd)
+	} else {
+		wm, wmSelected = promptCompositor()
+		terminal, terminalSelected = promptTerminal()
+		if wmSelected {
+			if wm == deps.WindowManagerMango {
+				useSystemd = false
+			} else if isVoidSetup() {
+				useSystemd = false
+				fmt.Println("\nVoid Linux detected; deploying non-systemd session config.")
+			} else {
+				useSystemd = promptSystemd()
+			}
+		}
 
-		if response != "y" && response != "yes" {
-			fmt.Println("Setup cancelled.")
+		if !wmSelected && !terminalSelected {
+			fmt.Println("No configurations selected. Exiting.")
 			return nil
+		}
+
+		if wmSelected || terminalSelected {
+			willBackup := checkExistingConfigs(wm, wmSelected, terminal, terminalSelected)
+			if willBackup {
+				fmt.Println("\n⚠ Existing configurations will be backed up with timestamps.")
+			}
+
+			fmt.Print("\nProceed with deployment? (y/N): ")
+			var response string
+			fmt.Scanln(&response)
+			response = strings.ToLower(strings.TrimSpace(response))
+
+			if response != "y" && response != "yes" {
+				fmt.Println("Setup cancelled.")
+				return nil
+			}
 		}
 	}
 

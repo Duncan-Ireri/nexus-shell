@@ -70,18 +70,36 @@ curl -fsSL https://raw.githubusercontent.com/Duncan-Ireri/nexus-shell/main/insta
 
 Targets Arch Linux and derivatives (pacman). Asks you to pick Hyprland or
 Niri, installs and verifies it *before* touching anything else, then builds
-and installs nexus-shell, then offers a checklist of developer tooling:
-Docker & Docker Compose, Node.js/JS, Python, Java, ML extras (JupyterLab,
-CUDA+PyTorch if an NVIDIA GPU is detected), and a terminal/shell setup
-(kitty, tmux + TPM, starship, zsh + oh-my-zsh). Language runtimes are
-managed per-project via `mise` rather than pinned system-wide, so different
-projects can pin different Node/Python/Java versions.
+and installs nexus-shell. It then sets up a ready-to-use desktop:
 
-Non-interactive: `install/install.sh --non-interactive --compositor=hyprland --tools=docker,node,python`.
-See `install/install.sh --help`, and `install/lib/common.sh` for the
+- **kitty** as the terminal, **Firefox** as the browser (registered as the
+  default http/https handler),
+- the full compositor config — keybinds, window rules, layout, colours —
+  deployed via `nexus setup` (existing configs are backed up with a
+  timestamp, not overwritten in place),
+- `~/.local/bin/dms` symlinked to the `nexus` binary, since the shipped
+  keybinds and the compositor's shell-launch hook invoke `dms`,
+- `assets/wallpapers/trigonometry.png` installed to `~/Pictures/Wallpapers`
+  and set as the default wallpaper (override with `--wallpaper=<path>`),
+- optionally (prompted; default yes) **greetd + the nexus greeter** as the
+  graphical login manager.
+
+Finally it offers a checklist of developer tooling: Docker & Docker Compose,
+Node.js/JS, Python, Java, ML extras (JupyterLab, CUDA+PyTorch if an NVIDIA
+GPU is detected), and a terminal/shell setup (kitty, tmux + TPM, starship,
+zsh + oh-my-zsh). Language runtimes are managed per-project via `mise` rather
+than pinned system-wide.
+
+The session is deployed **without** a `dms.service` systemd unit — the
+compositor spawns the shell directly (`dms run`). Hyprland's native Lua
+config (`~/.config/hypr/hyprland.lua`) is used.
+
+Non-interactive: `install/install.sh --non-interactive --compositor=hyprland
+--tools=docker,node,python --display-manager`. Without `--display-manager`
+the login manager is skipped in non-interactive runs. See
+`install/install.sh --help`, and `install/lib/common.sh` for the
 idempotency/security conventions every step follows (never silently adds you
-to the `docker` group, never overwrites an existing dotfile, package lists
-in `install/packages/*.packages`).
+to the `docker` group, package lists in `install/packages/*.packages`).
 
 **Resilience.** Safe to re-run at any point — every step checks what's
 already done rather than redoing it blindly, network operations retry

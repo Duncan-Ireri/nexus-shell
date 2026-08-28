@@ -1,0 +1,9 @@
+# Desktop layer installed on top of the compositor + shell so a fresh login
+# lands on a usable graphical session. The web browser is installed separately
+# in steps/03-desktop.sh (it is selectable via --browser=).
+#
+# Kept deliberately short — anything language/framework-specific stays opt-in
+# via the dev-tooling menu (see steps/tools/).
+
+# Terminal emulator — matches the {{TERMINAL_COMMAND}} the deployed keybinds use
+kitty
