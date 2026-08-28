@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # nexus-shell bootstrap installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/<org>/nexus-shell/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Duncan-Ireri/nexus-shell/main/install.sh | bash
 #
 # This file is deliberately tiny: when piped through `curl | bash`, stdin is
 # the script itself, not a terminal, so nothing here can be interactive. All
@@ -12,7 +12,7 @@
 # install/install.sh the same way, so both paths behave identically.
 set -euo pipefail
 
-REPO_URL="${NEXUS_SHELL_REPO_URL:-https://github.com/nexus-shell/nexus-shell.git}"
+REPO_URL="${NEXUS_SHELL_REPO_URL:-https://github.com/Duncan-Ireri/nexus-shell.git}"
 CLONE_DIR="${NEXUS_SHELL_CLONE_DIR:-$HOME/.local/share/nexus-shell-src}"
 
 # BASH_SOURCE[0] is unset when this script is fed to bash via a pipe

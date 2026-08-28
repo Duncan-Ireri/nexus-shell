@@ -63,7 +63,7 @@ iterating on QML and don't want to rebuild the Go binary each time.
 ## Installing
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<org>/nexus-shell/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Duncan-Ireri/nexus-shell/main/install.sh | bash
 # or, from a checkout:
 ./install.sh
 ```
