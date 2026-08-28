@@ -3,7 +3,8 @@
 # nexus:group=theme
 set -euo pipefail
 
-NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve through symlinks: the installer symlinks this into ~/.local/bin.
+NEXUS_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/NexusShell"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/NexusShell"
 CURRENT="$(cat "$CONFIG_DIR/.current-theme-name" 2>/dev/null || true)"

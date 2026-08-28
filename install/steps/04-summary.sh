@@ -14,6 +14,9 @@ to launch it on startup.
   Log out and back in, selecting ${NEXUS_COMPOSITOR:-Hyprland/Niri} at your
   display/login manager, to start using it.
 
+Open a new terminal (or run: export PATH="\$HOME/.local/bin:\$PATH") so the
+nexus commands below are found in your current session.
+
 Useful commands:
   nexus-shell theme list / theme set <name>   switch themes
   nexus-shell bar <cmd>                       control the bar

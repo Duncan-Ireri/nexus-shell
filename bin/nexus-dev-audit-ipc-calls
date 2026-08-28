@@ -12,7 +12,7 @@
 # against what bin/ actually calls.
 set -euo pipefail
 
-NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+NEXUS_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 IPC_FILE="$NEXUS_ROOT/quickshell/DMSShellIPC.qml"
 BIN_DIR="$NEXUS_ROOT/bin"
 

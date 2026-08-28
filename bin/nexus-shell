@@ -9,7 +9,9 @@
 # also works standalone if it's on PATH.
 set -euo pipefail
 
-BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve through symlinks: the installer symlinks this dispatcher (and every
+# routed nexus-* script) into ~/.local/bin.
+BIN_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
 read_meta() {
     local script="$1" key="$2"

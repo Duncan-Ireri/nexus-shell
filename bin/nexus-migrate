@@ -3,7 +3,9 @@
 # nexus:group=system
 set -euo pipefail
 
-NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve through symlinks: this script is symlinked into ~/.local/bin by the
+# installer, so ${BASH_SOURCE[0]} alone would point there, not at the repo.
+NEXUS_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 MIGRATIONS_DIR="$NEXUS_ROOT/migrations"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/NexusShell"
 MARKER_DIR="$STATE_DIR/migrations"

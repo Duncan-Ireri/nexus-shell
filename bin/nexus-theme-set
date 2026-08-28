@@ -11,7 +11,10 @@ if [ -z "$THEME_NAME" ]; then
     exit 1
 fi
 
-NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve through symlinks: the installer symlinks this into ~/.local/bin, so
+# ${BASH_SOURCE[0]} alone would resolve to there instead of the repo checkout.
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+NEXUS_ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/NexusShell"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/NexusShell"
 USER_THEMES_DIR="$CONFIG_DIR/themes"
@@ -28,7 +31,7 @@ else
     echo "nexus-theme-set: unknown theme '$THEME_NAME'" >&2
     echo >&2
     echo "Available themes:" >&2
-    "$(dirname "${BASH_SOURCE[0]}")/nexus-theme-list" >&2
+    "$(dirname "$SELF")/nexus-theme-list" >&2
     exit 1
 fi
 
