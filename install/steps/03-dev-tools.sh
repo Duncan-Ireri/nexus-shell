@@ -25,8 +25,11 @@ TOOL_ORDER=(
 )
 
 selected=()
-if [ -n "${NEXUS_TOOLS:-}" ]; then
-    # Non-interactive: NEXUS_TOOLS=docker,node,python,java,ml,terminal
+if [ "${NEXUS_NONINTERACTIVE:-0}" = "1" ] && [ -z "${NEXUS_TOOLS:-}" ]; then
+    # --non-interactive with no --tools: install no optional tooling, don't prompt.
+    info "Non-interactive run without --tools — skipping optional developer tooling."
+elif [ -n "${NEXUS_TOOLS:-}" ]; then
+    # NEXUS_TOOLS=docker,node,python,java,ml,terminal
     IFS=',' read -ra requested <<<"$NEXUS_TOOLS"
     for r in "${requested[@]}"; do
         r="$(echo "$r" | xargs)"
