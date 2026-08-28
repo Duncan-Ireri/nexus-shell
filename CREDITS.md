@@ -13,6 +13,13 @@ everywhere, singleton services, a Go IPC fast-path that bypasses subprocess
 spawn for hot paths, precompiled shaders. See `README.md` for what was
 renamed/rebranded vs. kept as-is.
 
+## Default wallpaper
+
+`assets/wallpapers/trigonometry.png` — a dark chalkboard-style illustration of
+trigonometry/calculus formulae, shipped as the installer's default wallpaper.
+Provided by the project maintainer; replace it with `--wallpaper=<path>` at
+install time or from the shell afterwards.
+
 ## dank-qml-common (code, MIT)
 
 <https://github.com/AvengeMedia/dank-qml-common> — shared QML widget library

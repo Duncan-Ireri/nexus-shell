@@ -49,8 +49,12 @@ the root `README.md` for provenance and what changed from upstream.
   the repo root is a tiny bootstrap (clones the repo if piped via curl,
   reattaches `/dev/tty` so prompts still work, then hands off);
   `install/install.sh` is the real orchestrator, running `install/steps/*.sh`
-  in order (preflight → compositor choice → build+install the shell → an
-  opt-in dev-tooling checklist in `install/steps/tools/*.sh` → summary).
+  in order (preflight → compositor choice → build+install the shell →
+  desktop layer [terminal, browser, `nexus setup` config deployment,
+  wallpaper, optional greetd + nexus greeter] → an opt-in dev-tooling
+  checklist in `install/steps/tools/*.sh` → summary). `03-desktop.sh` runs
+  `nexus setup --yes --systemd=false` and symlinks `~/.local/bin/dms ->
+  nexus` because the shipped compositor configs/keybinds call `dms`.
   `install/lib/common.sh` has the shared logging/prompt/package-install/
   idempotent-file-edit helpers every step uses — read that before adding a
   new step, it already solves "don't clobber an existing dotfile," "don't
@@ -62,7 +66,7 @@ the root `README.md` for provenance and what changed from upstream.
   `require_installed`, which does fail loudly). New steps should follow the
   same split: fail loud on your own genuinely-required precondition, but if
   you're one of several optional things offered together (see
-  `steps/03-dev-tools.sh`'s per-tool try/warn loop, or `steps/tools/terminal.sh`'s
+  `steps/04-dev-tools.sh`'s per-tool try/warn loop, or `steps/tools/terminal.sh`'s
   independent kitty/tmux/starship/zsh blocks), don't let your failure block
   the others.
 
