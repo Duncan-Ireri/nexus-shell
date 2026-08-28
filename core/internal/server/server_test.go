@@ -16,7 +16,7 @@ import (
 
 func TestGetSocketPath(t *testing.T) {
 	path := GetSocketPath()
-	assert.Contains(t, path, "danklinux-")
+	assert.Contains(t, path, "nexus-")
 	assert.Contains(t, path, ".sock")
 	assert.Contains(t, path, fmt.Sprintf("%d", os.Getpid()))
 }

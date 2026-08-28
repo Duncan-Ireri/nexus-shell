@@ -68,6 +68,21 @@ func (cd *ConfigDeployer) DeployConfigurationsSelectiveWithReinstallsAndSystemd(
 func (cd *ConfigDeployer) deployConfigurationsInternal(_ context.Context, wm deps.WindowManager, terminal deps.Terminal, _ []deps.Dependency, replaceConfigs map[string]bool, _ map[string]bool, useSystemd bool) ([]DeploymentResult, error) {
 	var results []DeploymentResult
 
+	// A systemd session launches the shell via nexus.service (pulled in by
+	// graphical-session.target), not a compositor exec line — write the unit
+	// now so `systemctl --user enable nexus.service` has something to enable.
+	if useSystemd {
+		execPath := ""
+		if exe, err := os.Executable(); err == nil {
+			execPath = exe
+		}
+		if unitPath, err := EnsureNexusUserService(execPath); err != nil {
+			cd.log(fmt.Sprintf("Warning: failed to write nexus.service: %v", err))
+		} else {
+			cd.log(fmt.Sprintf("Ensured nexus.service at %s", unitPath))
+		}
+	}
+
 	// Primary config file paths used to detect fresh installs.
 	configPrimaryPaths := map[string][]string{
 		"Niri": {
@@ -893,12 +908,12 @@ func (cd *ConfigDeployer) transformNiriConfigForNonSystemd(config, terminalComma
 
 	config = regexp.MustCompile(`environment \{[^}]*\}`).ReplaceAllString(config, envVars)
 
-	spawnDms := `spawn-at-startup "dms" "run"`
-	if !strings.Contains(config, spawnDms) {
-		// Insert spawn-at-startup for dms after the environment block
+	spawnShell := `spawn-at-startup "nexus" "run"`
+	if !strings.Contains(config, spawnShell) {
+		// Insert spawn-at-startup for the shell after the environment block
 		envBlockEnd := regexp.MustCompile(`environment \{[^}]*\}`)
 		if loc := envBlockEnd.FindStringIndex(config); loc != nil {
-			config = config[:loc[1]] + "\n" + spawnDms + config[loc[1]:]
+			config = config[:loc[1]] + "\n" + spawnShell + config[loc[1]:]
 		}
 	}
 

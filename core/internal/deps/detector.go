@@ -13,6 +13,11 @@ const (
 	StatusNeedsReinstall
 )
 
+// ShellPackageName is the display Name of the Dependency representing the
+// nexus-shell package itself (produced by distros.BaseDistribution.detectDMS).
+// It is a required package and cannot be excluded from a headless install.
+const ShellPackageName = "dms (NexusShell)"
+
 type PackageVariant int
 
 const (

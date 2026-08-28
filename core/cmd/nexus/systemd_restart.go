@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const dmsSystemdUnit = "dms.service"
+const dmsSystemdUnit = "nexus.service"
 const dmsSessionRestartExitCode = 75 // EX_TEMPFAIL
 
 var runSystemctl = func(args ...string) error {

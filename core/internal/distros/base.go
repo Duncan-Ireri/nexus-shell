@@ -130,7 +130,7 @@ func (b *BaseDistribution) detectDMS() deps.Dependency {
 	}
 
 	dep := deps.Dependency{
-		Name:        "dms (NexusShell)",
+		Name:        deps.ShellPackageName,
 		Status:      status,
 		Description: "Desktop Management System configuration",
 		Required:    true,

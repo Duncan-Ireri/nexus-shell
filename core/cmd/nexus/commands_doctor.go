@@ -1161,30 +1161,30 @@ func checkSystemdServices() []checkResult {
 
 	var results []checkResult
 
-	dmsState := getServiceState("dms", true)
-	if !dmsState.exists {
-		results = append(results, checkResult{catServices, "dms.service", statusInfo, "Not installed", "Optional user service", doctorDocsURL + "#services"})
+	nexusState := getServiceState("nexus", true)
+	if !nexusState.exists {
+		results = append(results, checkResult{catServices, "nexus.service", statusInfo, "Not installed", "Optional user service", doctorDocsURL + "#services"})
 	} else {
-		status, message := statusOK, dmsState.enabled
-		if dmsState.active != "" {
-			message = fmt.Sprintf("%s, %s", dmsState.enabled, dmsState.active)
+		status, message := statusOK, nexusState.enabled
+		if nexusState.active != "" {
+			message = fmt.Sprintf("%s, %s", nexusState.enabled, nexusState.active)
 		}
 		switch {
-		case dmsState.active == "failed":
+		case nexusState.active == "failed":
 			status = statusError
-		case dmsState.active == "active":
-		case dmsState.enabled == "disabled":
+		case nexusState.active == "active":
+		case nexusState.enabled == "disabled":
 			status, message = statusWarn, "Disabled"
-		case dmsState.active == "inactive":
+		case nexusState.active == "inactive":
 			status = statusError
 		}
-		results = append(results, checkResult{catServices, "dms.service", status, message, "", doctorDocsURL + "#services"})
+		results = append(results, checkResult{catServices, "nexus.service", status, message, "", doctorDocsURL + "#services"})
 	}
 
-	if dmsState.exists && dmsState.enabled == "enabled" {
+	if nexusState.exists && nexusState.enabled == "enabled" {
 		gsState := getServiceState("graphical-session.target", true)
 		if gsState.exists && gsState.active != "active" {
-			results = append(results, checkResult{catServices, "graphical-session.target", statusWarn, "Inactive", "Compositor session never activated it, so dms.service cannot autostart. On Hyprland, hyprland-session.target must exist and be started by the compositor.", doctorDocsURL + "#services"})
+			results = append(results, checkResult{catServices, "graphical-session.target", statusWarn, "Inactive", "Compositor session never activated it, so nexus.service cannot autostart. On Hyprland, hyprland-session.target must exist and be started by the compositor.", doctorDocsURL + "#services"})
 		}
 	}
 

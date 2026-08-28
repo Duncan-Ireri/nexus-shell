@@ -521,8 +521,8 @@ func TestHyprlandConfigStructure(t *testing.T) {
 }
 
 func TestMangoConfigStructure(t *testing.T) {
-	assert.Contains(t, MangoConfig, "exec-once=dms run")
-	assert.NotContains(t, MangoConfig, "exec_once=dms run")
+	assert.Contains(t, MangoConfig, "exec-once=nexus run")
+	assert.NotContains(t, MangoConfig, "exec_once=nexus run")
 	assert.Contains(t, MangoConfig, "source=./dms/binds.conf")
 	assert.Contains(t, MangoBindsConfig, "bind=SUPER,H,focusdir,left")
 	assert.Contains(t, MangoBindsConfig, "bind=SUPER,J,focusdir,down")

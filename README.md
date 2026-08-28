@@ -90,9 +90,19 @@ GPU is detected), and a terminal/shell setup (kitty, tmux + TPM, starship,
 zsh + oh-my-zsh). Language runtimes are managed per-project via `mise` rather
 than pinned system-wide.
 
-The session is deployed **without** a `dms.service` systemd unit — the
-compositor spawns the shell directly (`dms run`). Hyprland's native Lua
-config (`~/.config/hypr/hyprland.lua`) is used.
+The session is systemd-managed: `nexus setup` writes and enables
+`~/.config/systemd/user/nexus.service` (`ExecStart=nexus run --session`,
+`WantedBy=graphical-session.target`), so the shell starts with the graphical
+session on Hyprland *and* Niri. Start Niri via `niri-session` (what the
+greeter does), not bare `niri`, so `graphical-session.target` activates. Pass
+`nexus setup --systemd=false` for a standalone session that spawns the shell
+from the compositor config instead (Void/Mango default).
+
+Hyprland's native Lua config (`~/.config/hypr/hyprland.lua`, auto-loaded on
+Hyprland 0.55+) is used; the installer warns if the installed Hyprland is
+older. The deployed keybinds still call `dms ipc call …` (upstream name); a
+`~/.local/bin/dms → nexus` alias keeps them working while the keybind
+subsystem's rename lands separately.
 
 Non-interactive: `install/install.sh --non-interactive --compositor=hyprland
 --tools=docker,node,python --display-manager`. Without `--display-manager`

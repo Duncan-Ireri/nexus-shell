@@ -27,8 +27,8 @@ func TestBaseDistribution_detectDMS_NotInstalled(t *testing.T) {
 		t.Errorf("Expected StatusMissing, got %d", dep.Status)
 	}
 
-	if dep.Name != "dms (DankMaterialShell)" {
-		t.Errorf("Expected name 'dms (DankMaterialShell)', got %s", dep.Name)
+	if dep.Name != deps.ShellPackageName {
+		t.Errorf("Expected name %q, got %s", deps.ShellPackageName, dep.Name)
 	}
 
 	if !dep.Required {
@@ -69,8 +69,8 @@ func TestBaseDistribution_detectDMS_Installed(t *testing.T) {
 		t.Error("Expected DMS to be detected as installed")
 	}
 
-	if dep.Name != "dms (DankMaterialShell)" {
-		t.Errorf("Expected name 'dms (DankMaterialShell)', got %s", dep.Name)
+	if dep.Name != deps.ShellPackageName {
+		t.Errorf("Expected name %q, got %s", deps.ShellPackageName, dep.Name)
 	}
 
 	if !dep.Required {
@@ -111,8 +111,8 @@ func TestBaseDistribution_detectDMS_NeedsUpdate(t *testing.T) {
 	base := NewBaseDistribution(logChan)
 	dep := base.detectDMS()
 
-	if dep.Name != "dms (DankMaterialShell)" {
-		t.Errorf("Expected name 'dms (DankMaterialShell)', got %s", dep.Name)
+	if dep.Name != deps.ShellPackageName {
+		t.Errorf("Expected name %q, got %s", deps.ShellPackageName, dep.Name)
 	}
 
 	if !dep.Required {
@@ -141,8 +141,8 @@ func TestBaseDistribution_detectDMS_DirectoryWithoutGit(t *testing.T) {
 		t.Error("Expected DMS to be detected as present")
 	}
 
-	if dep.Name != "dms (DankMaterialShell)" {
-		t.Errorf("Expected name 'dms (DankMaterialShell)', got %s", dep.Name)
+	if dep.Name != deps.ShellPackageName {
+		t.Errorf("Expected name %q, got %s", deps.ShellPackageName, dep.Name)
 	}
 
 	if !dep.Required {

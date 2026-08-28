@@ -53,8 +53,10 @@ the root `README.md` for provenance and what changed from upstream.
   desktop layer [terminal, browser, `nexus setup` config deployment,
   wallpaper, optional greetd + nexus greeter] → an opt-in dev-tooling
   checklist in `install/steps/tools/*.sh` → summary). `03-desktop.sh` runs
-  `nexus setup --yes --systemd=false` and symlinks `~/.local/bin/dms ->
-  nexus` because the shipped compositor configs/keybinds call `dms`.
+  `nexus setup --yes` (systemd session: `nexus setup` writes + enables
+  `~/.config/systemd/user/nexus.service`) and symlinks `~/.local/bin/dms ->
+  nexus` because the shipped keybinds still call `dms ipc call` (the QML
+  keybind subsystem's rename is deferred — see the deps note in memory).
   `install/lib/common.sh` has the shared logging/prompt/package-install/
   idempotent-file-edit helpers every step uses — read that before adding a
   new step, it already solves "don't clobber an existing dotfile," "don't

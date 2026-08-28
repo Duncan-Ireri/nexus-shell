@@ -15,6 +15,19 @@ case "$COMPOSITOR_LOWER" in
         pacman_install_list "$INSTALL_ROOT/packages/hyprland.packages"
         require_installed Hyprland "Hyprland"
 
+        # nexus-shell deploys a Lua config (~/.config/hypr/hyprland.lua), which
+        # Hyprland auto-loads (in place of hyprland.conf) only on 0.55+. Warn
+        # early rather than let the user hit it as a black screen after login.
+        hypr_ver="$(Hyprland --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1 | tr -d v)"
+        if [ -n "$hypr_ver" ]; then
+            hypr_major="${hypr_ver%%.*}"; hypr_rest="${hypr_ver#*.}"; hypr_minor="${hypr_rest%%.*}"
+            if [ "$hypr_major" -eq 0 ] && [ "$hypr_minor" -lt 55 ]; then
+                warn "Hyprland $hypr_ver is older than 0.55 — it will not load the Lua config nexus-shell deploys. Update Hyprland before logging in."
+            else
+                info "Hyprland $hypr_ver (Lua config supported)"
+            fi
+        fi
+
         HYPR_CONF="$HOME/.config/hypr/hyprland.conf"
         if [ ! -f "$HYPR_CONF" ]; then
             info "No existing Hyprland config found — writing a minimal default"

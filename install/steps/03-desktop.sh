@@ -35,10 +35,9 @@ is_installed xdg-user-dirs-update && xdg-user-dirs-update || true
 step "Deploying $COMPOSITOR_LOWER + $TERMINAL_CHOICE configuration"
 # ---------------------------------------------------------------------------
 
-# `nexus setup` deploys the real compositor config: keybinds, window rules,
-# layout, colours, plus the terminal config. --systemd=false because this
-# installer does not ship a dms.service user unit — the compositor spawns the
-# shell directly (hl.exec_cmd("dms run") / spawn-at-startup "dms" "run").
+# `nexus setup` deploys the real compositor config (keybinds, window rules,
+# layout, colours) + the terminal config, writes ~/.config/systemd/user/
+# nexus.service, and enables it so the shell starts with graphical-session.target.
 already_deployed() {
     case "$COMPOSITOR_LOWER" in
         hyprland) [ -f "$HOME/.config/hypr/hyprland.lua" ] ;;
@@ -53,19 +52,21 @@ if ! is_installed nexus; then
 elif already_deployed; then
     info "Compositor config already deployed — leaving it (run 'nexus setup' to redeploy)"
 else
-    if nexus setup --yes --compositor="$COMPOSITOR_LOWER" --terminal="$TERMINAL_CHOICE" --systemd=false; then
+    if nexus setup --yes --compositor="$COMPOSITOR_LOWER" --terminal="$TERMINAL_CHOICE"; then
         ok "Compositor + terminal configuration deployed"
     else
         warn "nexus setup did not finish cleanly — run it manually later: nexus setup"
     fi
 fi
 
-# The shipped keybinds and session-start hooks call "dms"; this fork installs
-# the same binary as "nexus". A symlink makes the deployed configs work as-is.
+# The deployed keybinds still invoke `dms ipc call ...` (a leftover from the
+# upstream DankMaterialShell name). This fork installs that same binary as
+# `nexus`, so a `dms` alias keeps the shipped keybinds working. The shell's own
+# internals already call `nexus`; renaming the keybind lines is a separate pass.
 if is_installed nexus && ! is_installed dms; then
     mkdir -p "$HOME/.local/bin"
     ln -sf "$(command -v nexus)" "$HOME/.local/bin/dms"
-    info "Linked ~/.local/bin/dms -> nexus (keybind/session compatibility)"
+    info "Linked ~/.local/bin/dms -> nexus (keybind compatibility alias)"
 fi
 
 # ---------------------------------------------------------------------------

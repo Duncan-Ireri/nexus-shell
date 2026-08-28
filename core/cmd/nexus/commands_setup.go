@@ -496,7 +496,24 @@ func runSetup(opts setupOptions) error {
 		}
 	}
 
+	if useSystemd && wmSelected {
+		enableNexusUserService()
+	}
+
 	return nil
+}
+
+// enableNexusUserService reloads the systemd user manager so it picks up
+// nexus.service (the deployer already wrote the unit and its
+// graphical-session.target.wants symlink). Best-effort: no user manager during
+// an SSH/CI install just means the reload happens at next login.
+func enableNexusUserService() {
+	_ = runSystemctl("--user", "enable", config.NexusUserServiceName)
+	if err := runSystemctl("--user", "daemon-reload"); err != nil {
+		fmt.Printf("• %s is installed; it will load on your next login\n", config.NexusUserServiceName)
+		return
+	}
+	fmt.Printf("✓ %s enabled (starts with your graphical session)\n", config.NexusUserServiceName)
 }
 
 func isVoidSetup() bool {
