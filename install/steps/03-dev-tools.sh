@@ -29,6 +29,8 @@ if [ -n "${NEXUS_TOOLS:-}" ]; then
     # Non-interactive: NEXUS_TOOLS=docker,node,python,java,ml,terminal
     IFS=',' read -ra requested <<<"$NEXUS_TOOLS"
     for r in "${requested[@]}"; do
+        r="$(echo "$r" | xargs)"
+        [ -z "$r" ] && continue
         case "$r" in
             docker) selected+=("Docker & Docker Compose") ;;
             node) selected+=("Node.js / JavaScript (via mise)") ;;
@@ -40,7 +42,12 @@ if [ -n "${NEXUS_TOOLS:-}" ]; then
         esac
     done
 else
-    mapfile -t selected < <(ask_multi "Pick the developer tooling to install (space to toggle, enter to confirm)" "${TOOL_ORDER[@]}")
+    mapfile -t picked < <(ask_multi "Pick the developer tooling to install (space to toggle, enter to confirm)" "${TOOL_ORDER[@]}")
+    # gum emits a blank line when nothing is toggled; drop empty entries so the
+    # loop below never indexes TOOL_SCRIPT with an empty key (bad array subscript).
+    for label in "${picked[@]}"; do
+        [ -n "$label" ] && selected+=("$label")
+    done
 fi
 
 if [ "${#selected[@]}" -eq 0 ]; then
@@ -53,6 +60,7 @@ else
     # "don't let one thing ruin everything else," not "hide problems."
     failed=()
     for label in "${selected[@]}"; do
+        [ -z "$label" ] && continue
         script="${TOOL_SCRIPT[$label]:-}"
         [ -z "$script" ] && { warn "no script mapped for '$label', skipping"; continue; }
         if ! bash "$SCRIPT_DIR/tools/$script"; then
