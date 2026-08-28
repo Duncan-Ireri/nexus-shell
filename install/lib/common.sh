@@ -42,20 +42,22 @@ ask_choice() {
     fi
 }
 
-# ask_multi "Prompt" opt1 opt2 ... -> echoes chosen options, one per line
+# ask_multi "Prompt" opt1 opt2 ... -> echoes chosen options, one per line.
+#
+# Implemented as a yes/no prompt per option rather than gum's multi-select
+# (`gum choose --no-limit`, space to toggle): under the bubble tea v2 rewrite in
+# gum 2.0 the space key stopped toggling items in `choose`, so the multi-select
+# silently returned nothing. A plain confirm per item works across gum versions
+# and degrades cleanly without gum.
 ask_multi() {
     local prompt="$1"; shift
-    if have_gum; then
-        gum choose --no-limit --header "$prompt" "$@"
-    else
-        echo "$prompt (space-separated numbers, e.g. 1 3 4)" >&2
-        local i=1
-        for opt in "$@"; do echo "  $i) $opt" >&2; i=$((i + 1)); done
-        read -r -p "> " picks
-        for n in $picks; do
-            echo "${@:$n:1}"
-        done
-    fi
+    echo "$prompt" >&2
+    local opt
+    for opt in "$@"; do
+        if ask_confirm "  $opt" "no"; then
+            echo "$opt"
+        fi
+    done
 }
 
 # ask_confirm "Prompt" [default: yes|no] -> returns 0/1

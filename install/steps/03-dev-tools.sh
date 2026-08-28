@@ -42,9 +42,9 @@ if [ -n "${NEXUS_TOOLS:-}" ]; then
         esac
     done
 else
-    mapfile -t picked < <(ask_multi "Pick the developer tooling to install (space to toggle, enter to confirm)" "${TOOL_ORDER[@]}")
-    # gum emits a blank line when nothing is toggled; drop empty entries so the
-    # loop below never indexes TOOL_SCRIPT with an empty key (bad array subscript).
+    mapfile -t picked < <(ask_multi "Pick the developer tooling to install (y/n for each):" "${TOOL_ORDER[@]}")
+    # Defensive: drop any empty entries so the loop below never indexes
+    # TOOL_SCRIPT with an empty key (bad array subscript under set -u).
     for label in "${picked[@]}"; do
         [ -n "$label" ] && selected+=("$label")
     done
