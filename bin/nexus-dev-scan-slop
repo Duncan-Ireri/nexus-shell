@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# nexus:summary=Flag AI-filler phrasing in newly added comments (git-hook friendly)
+# nexus:group=dev
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+PATTERN='(let'"'"'s (create|add|make|build)|as an ai|i (will|'"'"'ll) now|note:.*this (function|code)|this (function|code|block) (is used to|handles)|for now,? we|todo:.*implement this)'
+
+added_comment_lines() {
+    git diff --cached -U0 -- '*.qml' '*.go' '*.sh' 2>/dev/null | grep -E '^\+[^+]' | grep -E '(//|#|\*)' || true
+}
+
+hits="$(added_comment_lines | grep -iE "$PATTERN" || true)"
+
+if [ -n "$hits" ]; then
+    echo "nexus-dev-scan-slop: staged comments look AI-generated/filler, please tighten them:" >&2
+    echo "$hits" >&2
+    exit 1
+fi
+
+exit 0

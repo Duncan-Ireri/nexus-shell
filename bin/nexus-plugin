@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# nexus:summary=Manage shell plugins over IPC (list, enable, disable, reload)
+# nexus:group=plugin
+# nexus:args=<list|enable|disable|toggle|reload|status> [pluginId]
+# nexus:examples=nexus plugin list|nexus plugin enable myPlugin
+set -euo pipefail
+
+CMD="${1:-}"
+PLUGIN_ID="${2:-}"
+NEXUS_BIN="${NEXUS_EXECUTABLE:-nexus}"
+
+usage() {
+    echo "Usage: nexus plugin <list|enable|disable|toggle|reload|status> [pluginId]" >&2
+    exit 1
+}
+
+case "$CMD" in
+    list)
+        exec "$NEXUS_BIN" ipc call plugins list
+        ;;
+    enable|disable|toggle|reload|status)
+        [ -z "$PLUGIN_ID" ] && { echo "nexus-plugin: '$CMD' requires a pluginId" >&2; usage; }
+        exec "$NEXUS_BIN" ipc call plugins "$CMD" "$PLUGIN_ID"
+        ;;
+    *)
+        usage
+        ;;
+esac

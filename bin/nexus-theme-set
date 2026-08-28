@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# nexus:summary=Apply a theme to the stable current-theme directory and fire hooks
+# nexus:group=theme
+# nexus:args=<theme-name>
+# nexus:examples=nexus theme set nord
+set -euo pipefail
+
+THEME_NAME="${1:-}"
+if [ -z "$THEME_NAME" ]; then
+    echo "Usage: nexus theme set <theme-name>" >&2
+    exit 1
+fi
+
+NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/NexusShell"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/NexusShell"
+USER_THEMES_DIR="$CONFIG_DIR/themes"
+BUILTIN_THEMES_DIR="$NEXUS_ROOT/theming/themes"
+BUILTIN_TEMPLATES_DIR="$NEXUS_ROOT/theming/templates"
+USER_TEMPLATES_DIR="$CONFIG_DIR/themed"
+
+# User themes always win over built-ins with the same name.
+if [ -d "$USER_THEMES_DIR/$THEME_NAME" ]; then
+    THEME_DIR="$USER_THEMES_DIR/$THEME_NAME"
+elif [ -d "$BUILTIN_THEMES_DIR/$THEME_NAME" ]; then
+    THEME_DIR="$BUILTIN_THEMES_DIR/$THEME_NAME"
+else
+    echo "nexus-theme-set: unknown theme '$THEME_NAME'" >&2
+    echo >&2
+    echo "Available themes:" >&2
+    "$(dirname "${BASH_SOURCE[0]}")/nexus-theme-list" >&2
+    exit 1
+fi
+
+COLORS_FILE="$THEME_DIR/colors.toml"
+if [ ! -f "$COLORS_FILE" ]; then
+    echo "nexus-theme-set: $COLORS_FILE not found" >&2
+    exit 1
+fi
+
+mkdir -p "$STATE_DIR" "$CONFIG_DIR/hooks/theme-set.d"
+
+STAGING_DIR="$STATE_DIR/.next-theme"
+CURRENT_LINK="$STATE_DIR/current-theme"
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"
+cp "$COLORS_FILE" "$STAGING_DIR/colors.toml"
+
+# Build a sed script from colors.toml: `key = "value"` becomes two substitution
+# rules, {{ key }} (raw, e.g. "#89b4fa") and {{ key_strip }} (no leading '#',
+# for formats like foot.ini that want bare hex).
+SED_SCRIPT="$STAGING_DIR/.render.sed"
+: > "$SED_SCRIPT"
+while IFS='=' read -r raw_key raw_value; do
+    key="$(echo "$raw_key" | xargs)"
+    [ -z "$key" ] && continue
+    case "$key" in \#*) continue ;; esac
+    value="$(echo "$raw_value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
+    stripped="${value#\#}"
+    {
+        printf 's|{{[[:space:]]*%s_strip[[:space:]]*}}|%s|g\n' "$key" "$stripped"
+        printf 's|{{[[:space:]]*%s[[:space:]]*}}|%s|g\n' "$key" "$value"
+    } >> "$SED_SCRIPT"
+done < "$COLORS_FILE"
+
+render_count=0
+shopt -s nullglob
+for tpl in "$BUILTIN_TEMPLATES_DIR"/*.tpl "$USER_TEMPLATES_DIR"/*.tpl; do
+    name="$(basename "$tpl" .tpl)"
+    sed -f "$SED_SCRIPT" "$tpl" > "$STAGING_DIR/$name"
+    render_count=$((render_count + 1))
+done
+shopt -u nullglob
+rm -f "$SED_SCRIPT"
+
+# Atomic swap: current-theme always points at a fully-rendered directory, never
+# a partially-written one. Apps that `include`/`source` files under
+# current-theme (see docs/THEMING.md) never see a half-applied theme.
+ln -sfn "$STAGING_DIR" "$CURRENT_LINK.new"
+mv -Tf "$CURRENT_LINK.new" "$CURRENT_LINK"
+echo "$THEME_NAME" > "$CONFIG_DIR/.current-theme-name"
+
+if [ -d "$CONFIG_DIR/hooks/theme-set.d" ]; then
+    for hook in "$CONFIG_DIR/hooks/theme-set.d"/*; do
+        [ -x "$hook" ] || continue
+        "$hook" "$THEME_NAME" "$THEME_DIR" || echo "nexus-theme-set: hook $(basename "$hook") failed" >&2
+    done
+fi
+
+echo "Applied theme '$THEME_NAME' ($render_count template(s) rendered to $CURRENT_LINK)."

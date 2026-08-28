@@ -1,0 +1,32 @@
+name = "Gruvbox Dark"
+mode = "dark"
+
+background = "#282828"
+dark_background = "#1d2021"
+darker_background = "#141617"
+lighter_background = "#3c3836"
+
+foreground = "#ebdbb2"
+dim_foreground = "#d5c4a1"
+
+accent = "#d79921"
+selection = "#504945"
+muted = "#665c54"
+
+red = "#cc241d"
+orange = "#d65d0e"
+yellow = "#d79921"
+green = "#98971a"
+cyan = "#689d6a"
+blue = "#458588"
+magenta = "#b16286"
+brown = "#a89984"
+
+bright_red = "#fb4934"
+bright_orange = "#fe8019"
+bright_yellow = "#fabd2f"
+bright_green = "#b8bb26"
+bright_cyan = "#8ec07c"
+bright_blue = "#83a598"
+bright_magenta = "#d3869b"
+bright_brown = "#bdae93"

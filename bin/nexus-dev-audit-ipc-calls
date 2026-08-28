@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# nexus:summary=Cross-check `nexus ipc call <target> <fn>` refs in bin/ against DMSShellIPC.qml
+# nexus:group=dev
+#
+# Ryoku's audit-shell-binds script inspired this: it greps a compositor's
+# keybind config for `ryoku-shell <cmd>` calls and fails CI if any invocation
+# doesn't match a command the daemon actually handles. We don't have a
+# keybind config yet, but we do have several bin/nexus-* scripts that call
+# `nexus ipc call <target> <function>` — this catches the same class of bug
+# (a typo'd target/function that would silently no-op at runtime) before it
+# ships, by parsing the IpcHandler blocks in DMSShellIPC.qml and diffing
+# against what bin/ actually calls.
+set -euo pipefail
+
+NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+IPC_FILE="$NEXUS_ROOT/quickshell/DMSShellIPC.qml"
+BIN_DIR="$NEXUS_ROOT/bin"
+
+if [ ! -f "$IPC_FILE" ]; then
+    echo "nexus-dev-audit-ipc-calls: $IPC_FILE not found, skipping" >&2
+    exit 0
+fi
+
+# Each IpcHandler block lists its functions first, then a trailing
+# `target: "name"` line. Pair every buffered function with the target that
+# follows it, emitting "target.function" lines.
+known="$(awk '
+    /function[ \t]+[A-Za-z0-9_]+\(/ {
+        match($0, /function[ \t]+([A-Za-z0-9_]+)\(/, m)
+        fns[n++] = m[1]
+    }
+    /target:[ \t]*"[^"]+"/ {
+        match($0, /target:[ \t]*"([^"]+)"/, m)
+        for (i = 0; i < n; i++) print m[1] "." fns[i]
+        n = 0
+    }
+' "$IPC_FILE")"
+
+fail=0
+shopt -s nullglob
+for script in "$BIN_DIR"/nexus-*; do
+    [ -f "$script" ] || continue
+    while IFS= read -r line; do
+        target="$(echo "$line" | awk '{print $1}')"
+        fn="$(echo "$line" | awk '{print $2}')"
+        [ -z "$target" ] && continue
+        if ! echo "$known" | grep -qx "${target}.${fn}"; then
+            echo "nexus-dev-audit-ipc-calls: $(basename "$script") calls ipc target '$target' fn '$fn' — no matching IpcHandler found" >&2
+            fail=1
+        fi
+    done < <(grep -oE '\bipc call [A-Za-z0-9_-]+ [A-Za-z0-9_-]+' "$script" | sed 's/^ipc call //')
+done
+shopt -u nullglob
+
+exit "$fail"

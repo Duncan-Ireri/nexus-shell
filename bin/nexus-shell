@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# nexus-shell: self-documenting dispatcher for nexus-shell's bash tooling
+# (theming, bar presets, plugin management, migrations, dev tooling).
+#
+# This is deliberately separate from the `nexus` binary (core/cmd/nexus): that
+# is the compiled shell supervisor/IPC client. This dispatcher only routes to
+# the bin/nexus-* scripts that ship alongside it, the same way Omarchy's
+# `omarchy` command routes to its bin/omarchy-* scripts. Every routed script
+# also works standalone if it's on PATH.
+set -euo pipefail
+
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+read_meta() {
+    local script="$1" key="$2"
+    grep -m1 "^# nexus:${key}=" "$script" 2>/dev/null | sed "s/^# nexus:${key}=//"
+}
+
+print_help() {
+    echo "nexus-shell — theming, bar, plugin, and migration tooling for nexus-shell"
+    echo
+    echo "Usage: nexus-shell <group> <command> [args...]"
+    echo
+    local groups
+    groups="$(for f in "$BIN_DIR"/nexus-*; do
+        [ -x "$f" ] || continue
+        [ "$(basename "$f")" = "nexus-shell" ] && continue
+        read_meta "$f" "group"
+    done | sort -u)"
+
+    for group in $groups; do
+        echo "$group:"
+        for f in "$BIN_DIR"/nexus-*; do
+            [ -x "$f" ] || continue
+            [ "$(basename "$f")" = "nexus-shell" ] && continue
+            [ "$(read_meta "$f" "group")" = "$group" ] || continue
+            local summary
+            summary="$(read_meta "$f" "summary")"
+            printf "  %-28s %s\n" "$(basename "$f")" "$summary"
+        done
+        echo
+    done
+    echo "Any script above also runs standalone: nexus-theme-set nord == nexus-shell theme set nord"
+}
+
+[ "$#" -eq 0 ] && { print_help; exit 0; }
+
+case "$1" in
+    -h|--help|help)
+        print_help
+        exit 0
+        ;;
+esac
+
+GROUP="$1"
+shift || true
+SUBCMD="${1:-}"
+
+# Two-word form first: `nexus-shell theme set nord` -> bin/nexus-theme-set nord
+if [ -n "$SUBCMD" ]; then
+    TWO_WORD="$BIN_DIR/nexus-${GROUP}-${SUBCMD}"
+    if [ -x "$TWO_WORD" ]; then
+        shift
+        exec "$TWO_WORD" "$@"
+    fi
+fi
+
+# One-word form: `nexus-shell bar toggle id main` -> bin/nexus-bar toggle id main
+ONE_WORD="$BIN_DIR/nexus-${GROUP}"
+if [ -x "$ONE_WORD" ]; then
+    exec "$ONE_WORD" "$@"
+fi
+
+echo "nexus-shell: no command for '$GROUP${SUBCMD:+ $SUBCMD}'" >&2
+print_help >&2
+exit 1

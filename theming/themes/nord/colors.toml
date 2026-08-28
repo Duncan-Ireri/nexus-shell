@@ -1,0 +1,32 @@
+name = "Nord"
+mode = "dark"
+
+background = "#2e3440"
+dark_background = "#242933"
+darker_background = "#1a1e24"
+lighter_background = "#3b4252"
+
+foreground = "#d8dee9"
+dim_foreground = "#a6accd"
+
+accent = "#88c0d0"
+selection = "#434c5e"
+muted = "#4c566a"
+
+red = "#bf616a"
+orange = "#d08770"
+yellow = "#ebcb8b"
+green = "#a3be8c"
+cyan = "#88c0d0"
+blue = "#81a1c1"
+magenta = "#b48ead"
+brown = "#8c7853"
+
+bright_red = "#bf616a"
+bright_orange = "#d08770"
+bright_yellow = "#ebcb8b"
+bright_green = "#a3be8c"
+bright_cyan = "#8fbcbb"
+bright_blue = "#5e81ac"
+bright_magenta = "#b48ead"
+bright_brown = "#8c7853"

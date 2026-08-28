@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# nexus:summary=Run any pending one-time migrations against the current install
+# nexus:group=system
+set -euo pipefail
+
+NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MIGRATIONS_DIR="$NEXUS_ROOT/migrations"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/NexusShell"
+MARKER_DIR="$STATE_DIR/migrations"
+
+mkdir -p "$MARKER_DIR"
+
+shopt -s nullglob
+ran=0
+for migration in "$MIGRATIONS_DIR"/*.sh; do
+    name="$(basename "$migration")"
+    marker="$MARKER_DIR/$name"
+    [ -f "$marker" ] && continue
+
+    echo "Running migration: $name"
+    if bash "$migration"; then
+        touch "$marker"
+        ran=$((ran + 1))
+    else
+        echo "nexus-migrate: $name failed, will retry next run" >&2
+        exit 1
+    fi
+done
+shopt -u nullglob
+
+if [ "$ran" -eq 0 ]; then
+    echo "No pending migrations."
+else
+    echo "Ran $ran migration(s)."
+fi

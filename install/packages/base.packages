@@ -1,0 +1,34 @@
+# Baseline packages installed unconditionally — Wayland/portal essentials plus
+# the CLI toolkit any dev environment wants. Kept small on purpose; everything
+# language/framework-specific is opt-in via the tool menu (see steps/tools/).
+
+# Wayland session essentials
+xdg-desktop-portal
+polkit-gnome
+qt5-wayland
+qt6-wayland
+wl-clipboard
+grim
+slurp
+
+# nexus-shell's actual UI toolkit
+quickshell
+
+# core CLI toolkit
+git
+base-devel
+curl
+wget
+unzip
+jq
+ripgrep
+fd
+bat
+eza
+fzf
+htop
+tree
+openssh
+gnupg
+lazygit
+github-cli

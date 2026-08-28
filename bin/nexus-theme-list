@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# nexus:summary=List available themes (built-in and user-installed)
+# nexus:group=theme
+set -euo pipefail
+
+NEXUS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/NexusShell"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/NexusShell"
+CURRENT="$(cat "$CONFIG_DIR/.current-theme-name" 2>/dev/null || true)"
+
+shopt -s nullglob
+declare -A seen
+
+list_dir() {
+    local dir="$1" label="$2"
+    for theme_toml in "$dir"/*/colors.toml; do
+        local name
+        name="$(basename "$(dirname "$theme_toml")")"
+        [ -n "${seen[$name]:-}" ] && continue
+        seen[$name]=1
+        local marker=" "
+        [ "$name" = "$CURRENT" ] && marker="*"
+        printf "%s %-20s [%s]\n" "$marker" "$name" "$label"
+    done
+}
+
+# User themes listed first so name collisions show the one that actually wins.
+list_dir "$CONFIG_DIR/themes" "user"
+list_dir "$NEXUS_ROOT/theming/themes" "built-in"
+shopt -u nullglob
+
+if [ -z "${CURRENT:-}" ]; then
+    echo
+    echo "No theme applied yet — run: nexus theme set <name>"
+fi

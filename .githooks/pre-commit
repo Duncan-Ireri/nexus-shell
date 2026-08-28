@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Enable with: git config core.hooksPath .githooks
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+FAIL=0
+
+"$REPO_ROOT/bin/nexus-dev-scan-slop" || FAIL=1
+"$REPO_ROOT/bin/nexus-dev-audit-ipc-calls" || FAIL=1
+
+exit "$FAIL"

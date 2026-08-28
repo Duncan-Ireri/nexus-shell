@@ -1,0 +1,44 @@
+# Qt/QML build artifacts
+*.qmlc
+*.jsc
+.qmlls.ini
+*_qmlcache.qrc
+
+# Go build output (built with `make build` / `go build`, not checked in)
+core/bin/
+core/nexus
+core/dist/
+
+# The embedded copy of quickshell/ that `make build`'s sync-shell step
+# generates for go:embed — regenerated from quickshell/ on every build.
+core/internal/shellembed/dist
+
+# Go
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+go.work
+go.work.sum
+
+# env files / secrets
+.env*
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Notepad state (belongs in ~/.local/state/NexusShell/, not the repo)
+untitled-*.txt
+notepad-files/
+
+# Auto-generated theme files
+*.generated.*
+
+# Distro build artifacts
+distro/void/temp/
+distro/void/hostdir/
+distro/void/masterdir*/
+
+result

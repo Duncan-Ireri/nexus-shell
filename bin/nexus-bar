@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# nexus:summary=Control DankBar instances over IPC (reveal, hide, toggle, position, ...)
+# nexus:group=bar
+# nexus:args=<command> [selector value]
+# nexus:examples=nexus bar toggle id main|nexus bar set-position id main top|nexus bar status
+set -euo pipefail
+
+usage() {
+    cat >&2 <<'EOF'
+Usage:
+  nexus bar <command>                          (acts on the preferred/default bar)
+  nexus bar <command> <selector> <value>       (acts on a specific bar)
+
+Commands: reveal, hide, toggle, status, autohide, manualhide, toggle-autohide,
+          toggle-reveal, get-position, set-position <position>
+
+<selector> is one of: id, index, position — <value> identifies which bar.
+Example: nexus bar toggle id main
+         nexus bar set-position id main left
+EOF
+    exit 1
+}
+
+CMD="${1:-}"
+[ -z "$CMD" ] && usage
+shift || true
+
+NEXUS_BIN="${NEXUS_EXECUTABLE:-nexus}"
+
+# Commands with a per-bar selector call the richer "getBarConfig" IPC target;
+# with no selector given they fall back to the simple "bar" target, which acts
+# on the shell's preferred/default bar.
+declare -A FN_MAP=(
+    [reveal]=reveal [hide]=hide [toggle]=toggle [status]=status
+    [autohide]=autoHide [manualhide]=manualHide
+    [toggle-autohide]=toggleAutoHide [toggle-reveal]=toggleReveal
+    [get-position]=getPosition [set-position]=setPosition
+)
+
+FN="${FN_MAP[$CMD]:-}"
+if [ -z "$FN" ]; then
+    echo "nexus-bar: unknown command '$CMD'" >&2
+    usage
+fi
+
+if [ "$#" -ge 2 ]; then
+    SELECTOR="$1"
+    VALUE="$2"
+    shift 2
+    if [ "$CMD" = "set-position" ]; then
+        POSITION="${1:?set-position requires a position argument (top|bottom|left|right)}"
+        exec "$NEXUS_BIN" ipc call getBarConfig "$FN" "$SELECTOR" "$VALUE" "$POSITION"
+    fi
+    exec "$NEXUS_BIN" ipc call getBarConfig "$FN" "$SELECTOR" "$VALUE"
+fi
+
+case "$CMD" in
+    reveal|hide|toggle|status|autohide|manualhide|toggle-autohide)
+        exec "$NEXUS_BIN" ipc call bar "$FN"
+        ;;
+    *)
+        echo "nexus-bar: '$CMD' requires a selector and value (e.g. id main)" >&2
+        usage
+        ;;
+esac
