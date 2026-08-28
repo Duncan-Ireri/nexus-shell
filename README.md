@@ -83,6 +83,19 @@ idempotency/security conventions every step follows (never silently adds you
 to the `docker` group, never overwrites an existing dotfile, package lists
 in `install/packages/*.packages`).
 
+**Resilience.** Safe to re-run at any point — every step checks what's
+already done rather than redoing it blindly, network operations retry
+transient failures, and a stale `pacman` lock from a previous interrupted run
+is cleared automatically. Package installs fall back to the AUR via `yay`
+(bootstrapped on demand) for anything not in the official repos; a package
+found in neither is warned about and skipped rather than aborting the whole
+batch. Within the optional dev-tooling checklist, one tool failing (a
+network blip mid-`mise install`, say) doesn't take the others down with it —
+it's reported at the end so you know what to re-run, everything else still
+completes. The one place that still stops the whole install on failure is
+the critical path (compositor, the shell build itself) — there's no point
+offering to install Docker onto a shell that didn't build.
+
 `core/cmd/nexus-install` (upstream's bubbletea TUI installer) is still
 present but unused by this flow — kept renamed and buildable in case it's
 worth reviving for a GUI-driven install path later.

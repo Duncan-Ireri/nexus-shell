@@ -8,6 +8,10 @@ step "Building and installing nexus-shell"
 
 NEXUS_ROOT="$(cd "$INSTALL_ROOT/.." && pwd)"
 
+if ! is_installed go; then
+    info "Go toolchain not found — installing via pacman..."
+    pacman_install go
+fi
 require_installed go "Go toolchain"
 
 info "Building core/cmd/nexus (embeds the QML shell)..."
@@ -24,9 +28,12 @@ export PATH="$HOME/.local/bin:$PATH"
 
 info "Linking nexus-shell CLI tooling (theme, bar, plugin, migrate, dev)..."
 mkdir -p "$HOME/.local/bin"
+shopt -s nullglob
 for script in "$NEXUS_ROOT"/bin/nexus-*; do
+    chmod +x "$script"
     ln -sf "$script" "$HOME/.local/bin/$(basename "$script")"
 done
+shopt -u nullglob
 
 info "Applying the default theme..."
 "$HOME/.local/bin/nexus-theme-set" tokyo-night || warn "theme apply failed, you can retry later: nexus-theme-set tokyo-night"

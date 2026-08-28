@@ -8,9 +8,10 @@ step "Preflight checks"
 
 require_arch
 require_not_root
+clear_stale_pacman_lock
 
 info "Refreshing package databases..."
-sudo pacman -Sy --noconfirm >/dev/null || fail "pacman -Sy failed — check your network/mirrors"
+retry 3 sudo pacman -Sy --noconfirm >/dev/null || fail "pacman -Sy failed after 3 attempts — check your network/mirrors"
 
 if ! is_installed gum; then
     info "Installing gum (used for the rest of this installer's prompts)..."

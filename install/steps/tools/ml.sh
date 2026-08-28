@@ -9,11 +9,15 @@ source "$SCRIPT_DIR/_mise.sh"
 step "Machine Learning tooling"
 
 ensure_mise
-mise use --global python@latest
+mise use --global python@latest || warn "python install failed, retry later: mise use --global python@latest"
 pacman_install uv
 
-info "Installing JupyterLab as a uv tool (isolated, on PATH via 'jupyter lab')..."
-uv tool install jupyterlab || warn "jupyterlab install failed, retry later: uv tool install jupyterlab"
+if is_installed uv; then
+    info "Installing JupyterLab as a uv tool (isolated, on PATH via 'jupyter lab')..."
+    uv tool install jupyterlab || warn "jupyterlab install failed, retry later: uv tool install jupyterlab"
+else
+    warn "uv did not install — skipping jupyterlab (retry later: uv tool install jupyterlab, once uv is installed)"
+fi
 
 if has_nvidia_gpu; then
     info "NVIDIA GPU detected."

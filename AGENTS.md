@@ -53,8 +53,18 @@ the root `README.md` for provenance and what changed from upstream.
   opt-in dev-tooling checklist in `install/steps/tools/*.sh` → summary).
   `install/lib/common.sh` has the shared logging/prompt/package-install/
   idempotent-file-edit helpers every step uses — read that before adding a
-  new step, it already solves "don't clobber an existing dotfile" and
-  "don't silently grant a security-sensitive group membership."
+  new step, it already solves "don't clobber an existing dotfile," "don't
+  silently grant a security-sensitive group membership," "retry a flaky
+  network op," "fall back to the AUR via yay when pacman doesn't know a
+  package," and "don't let one thing failing take everything else down with
+  it" (`pacman_install` is best-effort by design — it warns and moves on;
+  callers that need a hard guarantee a package landed follow up with
+  `require_installed`, which does fail loudly). New steps should follow the
+  same split: fail loud on your own genuinely-required precondition, but if
+  you're one of several optional things offered together (see
+  `steps/03-dev-tools.sh`'s per-tool try/warn loop, or `steps/tools/terminal.sh`'s
+  independent kitty/tmux/starship/zsh blocks), don't let your failure block
+  the others.
 
 ## General Rules
 

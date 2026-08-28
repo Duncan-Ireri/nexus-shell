@@ -76,15 +76,120 @@ ask_confirm() {
     fi
 }
 
+# --- retry ------------------------------------------------------------
+
+# retry <attempts> <cmd...> — for network-flaky operations (git clone, curl,
+# pacman -Sy). Does not swallow the final failure; the caller still sees a
+# non-zero exit after the last attempt.
+retry() {
+    local attempts="$1"; shift
+    local n=1
+    until "$@"; do
+        if [ "$n" -ge "$attempts" ]; then
+            return 1
+        fi
+        warn "command failed (attempt $n/$attempts), retrying in 2s: $*"
+        sleep 2
+        n=$((n + 1))
+    done
+}
+
 # --- package installation ----------------------------------------------
 
 NEXUS_NONINTERACTIVE="${NEXUS_NONINTERACTIVE:-0}"
 
+# A stale db.lck from a previous run that got killed (Ctrl-C, crashed VM,
+# `kill`) blocks every future pacman call with a cryptic "unable to lock
+# database" error until it's removed — a very common real-world reason a
+# re-run of an installer fails. Only clear it if no pacman is actually
+# running, so we never race a genuinely in-progress transaction.
+clear_stale_pacman_lock() {
+    local lock="/var/lib/pacman/db.lck"
+    [ -f "$lock" ] || return 0
+    if pgrep -x pacman >/dev/null 2>&1; then
+        return 0
+    fi
+    warn "Found a stale pacman lock from an interrupted run — removing it."
+    sudo rm -f "$lock"
+}
+
+have_yay() { command -v yay >/dev/null 2>&1; }
+
+# Bootstrapped lazily (only the first time pacman_install actually needs an
+# AUR package), not unconditionally in preflight — most nexus-shell installs
+# never need it, since everything in packages/*.packages is in the official
+# repos. Failure here is non-fatal: callers fall back to reporting the
+# package as unavailable rather than the whole install dying over it.
+ensure_yay() {
+    have_yay && return 0
+    info "Installing yay (AUR helper — fallback for packages outside the official repos)..."
+    local tmp
+    tmp="$(mktemp -d)"
+    # `git clone` refuses a non-empty target, so a failed first attempt would
+    # make a retry fail immediately unless the directory is reset between
+    # tries — hence the `rm -rf`/`mkdir` inside the retried command.
+    if retry 2 bash -c "rm -rf '$tmp' && mkdir -p '$tmp' && git clone --depth 1 https://aur.archlinux.org/yay-bin.git '$tmp'" >>"$NEXUS_INSTALL_LOG" 2>&1 \
+        && (cd "$tmp" && makepkg -si --noconfirm --needed >>"$NEXUS_INSTALL_LOG" 2>&1); then
+        rm -rf "$tmp"
+        have_yay && { ok "yay installed"; return 0; }
+    fi
+    rm -rf "$tmp"
+    warn "could not install yay — AUR fallback unavailable this run (see $NEXUS_INSTALL_LOG)"
+    return 1
+}
+
+# Installs each package from the official repos where possible, falling back
+# to the AUR (via yay, installed on demand) for anything pacman doesn't know
+# about. A package resolvable by neither is warned about and skipped, not
+# treated as fatal — one bad/renamed/AUR-only name in a list should never
+# block every other package in that same call. Callers that need a hard
+# guarantee a specific package landed should follow up with
+# `require_installed` (which does fail loudly) — that split is deliberate:
+# this function's job is "try, and tell me what didn't work," not "succeed
+# or die."
 pacman_install() {
     local pkgs=("$@")
     [ "${#pkgs[@]}" -eq 0 ] && return 0
-    info "Installing: ${pkgs[*]}"
-    sudo pacman -S --needed --noconfirm "${pkgs[@]}" || fail "pacman failed to install: ${pkgs[*]}"
+
+    clear_stale_pacman_lock
+
+    local official=() aur_candidates=()
+    for pkg in "${pkgs[@]}"; do
+        if pacman -Si "$pkg" >/dev/null 2>&1; then
+            official+=("$pkg")
+        else
+            aur_candidates+=("$pkg")
+        fi
+    done
+
+    if [ "${#official[@]}" -gt 0 ]; then
+        info "Installing (official repos): ${official[*]}"
+        retry 2 sudo pacman -S --needed --noconfirm "${official[@]}" \
+            || warn "pacman failed on: ${official[*]} — continuing, see $NEXUS_INSTALL_LOG"
+    fi
+
+    if [ "${#aur_candidates[@]}" -eq 0 ]; then
+        return 0
+    fi
+
+    have_yay || ensure_yay || true
+    local aur=() missing=()
+    for pkg in "${aur_candidates[@]}"; do
+        if have_yay && yay -Si "$pkg" >/dev/null 2>&1; then
+            aur+=("$pkg")
+        else
+            missing+=("$pkg")
+        fi
+    done
+
+    if [ "${#aur[@]}" -gt 0 ]; then
+        info "Installing (AUR via yay): ${aur[*]}"
+        retry 2 yay -S --needed --noconfirm "${aur[@]}" \
+            || warn "yay failed on: ${aur[*]} — continuing, see $NEXUS_INSTALL_LOG"
+    fi
+    if [ "${#missing[@]}" -gt 0 ]; then
+        warn "not found in the official repos or the AUR, skipped: ${missing[*]}"
+    fi
 }
 
 # Install a package list file (one package per line, '#' comments, blanks ok).
